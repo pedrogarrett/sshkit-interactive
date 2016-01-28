@@ -14,8 +14,8 @@ module SSHKit
       end
 
       def execute(*args, &block)
-        remote_command = command(*args)
-        output << remote_command
+        options = args.extract_options!
+        remote_command = command(args,options)
         Command.new(host, remote_command).execute
       end
     end
