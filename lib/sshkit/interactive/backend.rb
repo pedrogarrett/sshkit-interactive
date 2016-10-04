@@ -1,4 +1,3 @@
-# based on https://github.com/jetthoughts/j-cap-recipes/blob/be9dffe279b7bee816c9bafcb3633109096b20d5/lib/sshkit/backends/ssh_command.rb
 module SSHKit
   module Interactive
     class Backend < SSHKit::Backend::Printer
@@ -6,18 +5,50 @@ module SSHKit
         instance_exec(host, &@block)
       end
 
-      def within(directory, &block)
-        (@pwd ||= []).push directory.to_s
+      def within(directory, &_block)
+        (@pwd ||= []).push(directory.to_s)
+
         yield
       ensure
         @pwd.pop
       end
 
-      def execute(*args, &block)
-        options = args.extract_options!
-        remote_command = command(args,options)
-        Command.new(host, remote_command).execute
+      def as(who, &_block)
+        if who.is_a?(Hash)
+          @user  = who[:user]  || who['user']
+          @group = who[:group] || who['group']
+        else
+          @user  = who
+          @group = nil
+        end
+
+        raise SSHKit::Interactive::Unsupported, 'Setting group (through `as`) is currently not supported' unless @group.nil?
+
+        yield
+      ensure
+        remove_instance_variable(:@user)
+        remove_instance_variable(:@group)
       end
+
+      def execute(*args)
+        super
+
+        options = args.extract_options!
+        cmd     = Command.new(host, command(args, options))
+
+        debug(cmd.to_s)
+
+        cmd.execute
+      end
+
+      def _unsupported_operation(*args)
+        raise SSHKit::Backend::MethodUnavailableError, 'SSHKit::Interactive does not support this operation.'
+      end
+
+      alias :upload! :_unsupported_operation
+      alias :download! :_unsupported_operation
+      alias :test :_unsupported_operation
+      alias :capture :_unsupported_operation
     end
   end
 end

@@ -94,7 +94,13 @@ RSpec.configure do |config|
 =end
 
   config.before(:each) do
+    SSHKit.config.backend = SSHKit::Backend::Printer
+
     # block all system calls
     allow_any_instance_of(SSHKit::Interactive::Command).to receive(:system)
+
+    def expect_system_call(command)
+      expect_any_instance_of(SSHKit::Interactive::Command).to receive(:system).with(command)
+    end
   end
 end
